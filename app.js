@@ -150,8 +150,39 @@ const UIController = (() => {
         expensesLabel: '.budget__expenses--value',
         percentageLabel: '.budget__expenses--percentage',
         container: '.container',
-        expensePercLabel: '.item__percentage'
+        expensePercLabel: '.item__percentage',
+        dateLabel: '.budget__title--month'
 
+    }
+    //function that manuplates the inputted value to desired string
+    formatNumber = function (num, type) {
+        let numSplit, int, dec;
+
+        num = Math.abs(num); //removes any negative sign before the number
+        num = num.toFixed(2);//returns a string of the number to two decimal places
+        numSplit = num.split('.');//Returns an array of the split
+        int = numSplit[0]; //integer part of the number
+
+        if (int.length > 3 && int.length < 7) {
+            //runs this code if inputted value is btw 4-6 significant figure
+            int = int.substr(0, int.length - 3) + ',' + int.substr(int.length - 3, 3);
+        }
+        if (int.length > 7) {
+            //if values run into millions
+            int = int.substr(0, int.length - 6) + ',' + int.substr(int.length - 6, 3) + ',' + int.substr(int.length - 3, 3);
+        }
+        dec = numSplit[1];//decimal part of the number
+
+        return (type === 'exp' ? '-' : '+') + ' ' + int + '.' + dec;
+    }
+
+    //A reusable function for looping through a NodeList 
+    nodeListForEach = function (nodeList, callbackFxn) {
+        for (let i = 0; i < nodeList.length; i++) {
+
+            //calls the callback function declared at the point of calling the nodeListForEach
+            callbackFxn(nodeList[i], i);
+        }
     }
 
     return {
@@ -171,17 +202,17 @@ const UIController = (() => {
             //Create HTML string with placeholder text
             if (type === 'inc') {
                 element = DOMString.incomeContainer;
-                html = '<div class="item clearfix" id="inc-%id%"> <div class="item__description">%description%</div><div class="right clearfix"> <div class="item__value">%value%</div> <div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline">x</i></button></div></div></div>';
+                html = '<div class="item clearfix" id="inc-%id%"> <div class="item__description">%description%</div><div class="right clearfix"> <div class="item__value">%value%</div> <div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
 
             } else if (type === 'exp') {
                 element = DOMString.expenseContainer;
-                html = '<div class="item clearfix" id="exp-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline">x</i></button></div></div></div>';
+                html = '<div class="item clearfix" id="exp-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
             }
 
             //replace placeholder text with actual data
             newHtml = html.replace('%id%', obj.id);
             newHtml = newHtml.replace('%description%', obj.description);
-            newHtml = newHtml.replace('%value%', obj.value);
+            newHtml = newHtml.replace('%value%', formatNumber(obj.value, type));
 
 
             //insert HTML to the DOM
@@ -211,10 +242,12 @@ const UIController = (() => {
         },
 
         displayBudget: function (obj) {
-            document.querySelector(DOMString.budgetLabel).textContent = obj.budget;
-            document.querySelector(DOMString.incomeLabel).textContent = obj.totalInc;
-            document.querySelector(DOMString.expensesLabel).textContent = obj.totalExp;
+            let type;
+            obj.budget > 0 ? type = 'inc' : type = 'exp';
 
+            document.querySelector(DOMString.budgetLabel).textContent = formatNumber(obj.budget, type);
+            document.querySelector(DOMString.incomeLabel).textContent = formatNumber(obj.totalInc, 'inc');
+            document.querySelector(DOMString.expensesLabel).textContent = formatNumber(obj.totalExp, 'exp');
 
             if (obj.percentage > 0) {
                 document.querySelector(DOMString.percentageLabel).textContent = obj.percentage + '%';
@@ -222,37 +255,55 @@ const UIController = (() => {
                 document.querySelector(DOMString.percentageLabel).textContent = '---';
             }
         },
+
         //The method displays expense percentage to the UI
-        displayPercentages: function (percArray) {
+        displayPercentages: function (arrOfPercentages) {
             //grab all selected items and returns a nodeList of the selected items
             let fields = document.querySelectorAll(DOMString.expensePercLabel);
 
-            //A reusable function for looping through a NodeList 
-            nodeListForEach = function (list, callback) {
-                for (let i = 0; i < list.length; i++) {
 
-                    //calls the callback function declared later
-                    callback(list[i], i);
-                }
-            }
-
-            //Call nodeListForEach function with the specified callback functionality
+            //Calls nodeListForEach function (a private function declared above) with the specified callback functionality
             nodeListForEach(fields, function (current, index) {
-                if (percArray[index] > 0) { //just to make sure percentage value is greater than 0
-                    current.textContent = percArray[index] + '%';
+                if (arrOfPercentages[index] > 0) { //just to make sure percentage value is greater than 0
+                    current.textContent = arrOfPercentages[index] + '%';
                 } else {
                     current.textContent = '---';
                 }
 
             });
         },
-        //A method that exposes DOM string object
+
+        //The method displays the current month & year, its called in the init function
+        displayDate: function () {
+            let currentMonth, year, months, now;
+            now = new Date();//gets the Date object
+
+            months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+            year = now.getFullYear();
+
+            currentMonth = now.getMonth()//returns an zero-based index value of the month
+            document.querySelector(DOMString.dateLabel).textContent = months[currentMonth] + ' ' + year;
+        },
+
+        changeType: function () {
+            let fields = document.querySelectorAll(
+                DOMString.inputType + ',' +
+                DOMString.inputDescription + ',' +
+                DOMString.inputValue);
+
+            //nodeListForEach is a private reusable function for looping through each element of a Nodelist
+            nodeListForEach(fields, function (cur) {
+                cur.classList.toggle('red-focus');
+            });
+            document.querySelector(DOMString.inputBtn).classList.toggle('red');
+        },
+
+        //A method that exposes the DOMString object created above
         getDOMString() {
             return DOMString;
         }
     }
 })();
-
 
 //GLOBAL APP CONTROLLER
 const controller = (function (budgetCtrl, UICtrl) {
@@ -272,6 +323,7 @@ const controller = (function (budgetCtrl, UICtrl) {
         });
 
         document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
+        document.querySelector(DOM.inputType).addEventListener('change', UICtrl.changeType);
     }
     var updateBudget = function () {
 
@@ -351,6 +403,7 @@ const controller = (function (budgetCtrl, UICtrl) {
         //Initialization function
         init() {
             console.log('Application is started');
+            UICtrl.displayDate();
             UICtrl.displayBudget({
                 budget: 0,
                 percentage: -1,

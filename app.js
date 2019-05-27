@@ -156,24 +156,37 @@ const UIController = (() => {
     }
     //function that manuplates the inputted value to desired string
     formatNumber = function (num, type) {
-        let numSplit, int, dec;
 
-        num = Math.abs(num); //removes any negative sign before the number
-        num = num.toFixed(2);//returns a string of the number to two decimal places
-        numSplit = num.split('.');//Returns an array of the split
-        int = numSplit[0]; //integer part of the number
+        /*        let numSplit, int, dec;
+        
+                num = Math.abs(num); //removes any negative sign before the number
+                num = num.toFixed(2);//returns a string of the number to two decimal places
+                numSplit = num.split('.');//Returns an array of the split
+                int = numSplit[0]; //integer part of the number
+        
+                if (int.length > 3 && int.length < 7) {
+                    //runs this code if inputted value is btw 4-6 significant figure
+                    int = int.substr(0, int.length - 3) + ',' + int.substr(int.length - 3, 3);
+                }
+                if (int.length > 7) {
+                    //if values run into millions
+                    int = int.substr(0, int.length - 6) + ',' + int.substr(int.length - 6, 3) + ',' + int.substr(int.length - 3, 3);
+                }
+                dec = numSplit[1];//decimal part of the number
+                return (type === 'exp' ? '-' : '+') + ' ' + int + '.' + dec;
+        
+        */
+        //Using JS internationalization API 
+        const formatter = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'NGR',
+            minimumFractionDigits: 2
+        });
 
-        if (int.length > 3 && int.length < 7) {
-            //runs this code if inputted value is btw 4-6 significant figure
-            int = int.substr(0, int.length - 3) + ',' + int.substr(int.length - 3, 3);
-        }
-        if (int.length > 7) {
-            //if values run into millions
-            int = int.substr(0, int.length - 6) + ',' + int.substr(int.length - 6, 3) + ',' + int.substr(int.length - 3, 3);
-        }
-        dec = numSplit[1];//decimal part of the number
+        return `${(type === 'exp' ? '-' : '+')} ${formatter.format(num)}`;
 
-        return (type === 'exp' ? '-' : '+') + ' ' + int + '.' + dec;
+
+
     }
 
     //A reusable function for looping through a NodeList 
